@@ -1,7 +1,10 @@
 import { gql } from 'apollo-server-express'
+const { PubSub } = require('apollo-server-express');
 import { getRepository } from "typeorm";
 import { User } from "./entity/User";
 import { Task } from "./entity/Task";
+
+const pubsub = new PubSub();
 
 export const typeDefs = gql`
   type User {
@@ -10,6 +13,11 @@ export const typeDefs = gql`
     lastName: String!,
     age: Int!,
     tasks: [Task]
+  }
+  input UserInput {
+    firstName: String!,
+    lastName: String!,
+    age: Int!
   }
   enum UserOrderBy {
     firstName_ASC
@@ -32,11 +40,17 @@ export const typeDefs = gql`
     user(id: ID!): User
   }
   type Mutation {
-    addUser(id: Int, firstName: String!, lastName: String!, age: Int!): User
+    addUser(id: Int, input: UserInput!): User
     updateUser(id: Int!, firstName: String!, lastName: String!, age: Int!): User
     addTask(id: Int, title: String!, userId: Int!): Task
   }
+  type Subscription {
+    userAdded: User
+  }
 `;
+
+const USER_ADDED = 'USER_ADDED';
+
 
 // Provide resolver functions for your schema fields
 export const resolvers = {
@@ -50,7 +64,10 @@ export const resolvers = {
     }
   },
   Mutation: {
-    addUser: (parent, {id, firstName, lastName, age}, {}, info) => {
+    addUser: (parent, args, {}, info) => {
+      const {id, firstName, lastName, age} = args.input;
+      pubsub.publish(USER_ADDED, { userAdded: args });
+
       return getRepository(User).save({
         id,
         firstName,
@@ -72,5 +89,11 @@ export const resolvers = {
         user: userId
       });
     },
+  },
+  Subscription: {
+    userAdded: {
+      subscribe: () => pubsub.asyncIterator([USER_ADDED]),
+
+    }
   }
 };
