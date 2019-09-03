@@ -2,22 +2,31 @@ import "reflect-metadata";
 import { ApolloServer, gql } from "apollo-server-express"
 import { createConnection } from "typeorm";
 import { User } from "./entity/User";
-import {typeDefs, resolvers} from "./schema"
+import { typeDefs } from "./typeDefs"
+import { resolvers } from "./resolvers"
 import _get from "lodash.get";
 
 const express = require("express");
 
 const parseOrderBy = (val) => {
   const t = val!.orderBy;
-  if(t) {
+  if (t) {
     const tt = t.split("_");
-    return {[tt[0]]: tt[1]};
+    return { [tt[0]]: tt[1] };
   }
   return {};
 }
 
+const parsePaginate = (val) => {
+  const t = val!.paginate || {};
+  return {
+    skip: t!.skip,
+    take: t!.take,
+  }
+}
+
 // Construct a schema, using GraphQL schema language
-const server = new ApolloServer({ typeDefs, resolvers, context: {parseOrderBy} });
+const server = new ApolloServer({ typeDefs, resolvers, context: { parseOrderBy, parsePaginate } });
 const app = express();
 
 server.applyMiddleware({ app });
