@@ -33,9 +33,10 @@ export const typeDefs = gql`
     user: User!
   }
   type Query {
-    hello: String,
     users(orderBy: UserOrderBy, paginate: UserPaginate): [User]
     user(id: ID!): User
+    tasks: [Task]
+    task(id: ID!): Task
   }
   type Mutation {
     addUser(id: Int, input: UserInput!): User
